@@ -1,7 +1,3 @@
-
-
-import com.formdev.flatlaf.FlatDarkLaf;
-
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.border.LineBorder;
