@@ -16,18 +16,13 @@ public class ResetPasswordForm extends JFrame {
         setExtendedState(JFrame.MAXIMIZED_BOTH);
         setLocationRelativeTo(null);
 
-        // Background panel dengan gambar
         BackgroundPanel backgroundPanel = new BackgroundPanel();
         backgroundPanel.setLayout(new BorderLayout());
         setContentPane(backgroundPanel);
 
-        // Panel kiri: informasi
         JPanel leftPanel = createLeftPanel();
-
-        // Panel kanan: form reset password
         JPanel rightPanel = createRightPanel();
 
-        // Split pane untuk kiri dan kanan
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
         splitPane.setDividerLocation(500);
         splitPane.setResizeWeight(0);
@@ -85,37 +80,29 @@ public class ResetPasswordForm extends JFrame {
         gbc.weightx = 1.0;
         gbc.gridwidth = GridBagConstraints.REMAINDER;
 
-        // Username
         usernameField = new JTextField();
         decorateField(usernameField, "Username");
         JLabel usernameLabel = new JLabel("👤 Username");
         styleLabel(usernameLabel);
-
         gbc.gridy = 0;
         panel.add(usernameLabel, gbc);
-
         gbc.gridy++;
         panel.add(usernameField, gbc);
 
-        // Email
         emailField = new JTextField();
         decorateField(emailField, "Email");
         JLabel emailLabel = new JLabel("📧 Email");
         styleLabel(emailLabel);
-
         gbc.gridy++;
         panel.add(emailLabel, gbc);
-
         gbc.gridy++;
         panel.add(emailField, gbc);
 
-        // Password
         newPasswordField = new JPasswordField();
         decorateField(newPasswordField, "New Password");
         JLabel passwordLabel = new JLabel("🔑 New Password");
         styleLabel(passwordLabel);
 
-        // Show/hide password button
         JButton toggleButton = new JButton("Show");
         styleToggleButton(toggleButton);
 
@@ -137,11 +124,9 @@ public class ResetPasswordForm extends JFrame {
 
         gbc.gridy++;
         panel.add(passwordLabel, gbc);
-
         gbc.gridy++;
         panel.add(passwordPanel, gbc);
 
-        // Buttons
         JButton resetButton = new JButton("Reset Password");
         cancelButton = new JButton("Cancel");
 
@@ -151,31 +136,14 @@ public class ResetPasswordForm extends JFrame {
         gbc.gridy++;
         gbc.insets = new Insets(25, 10, 10, 10);
         panel.add(resetButton, gbc);
-
         gbc.gridy++;
         gbc.insets = new Insets(5, 10, 20, 10);
         panel.add(cancelButton, gbc);
 
-        // Event handlers
         resetButton.addActionListener(e -> resetPassword());
         cancelButton.addActionListener(e -> dispose());
 
         return panel;
-    }
-
-    private void styleLabel(JLabel label) {
-        label.setForeground(Color.WHITE);
-        label.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
-    }
-
-    private void styleToggleButton(JButton button) {
-        button.setFocusable(false);
-        button.setPreferredSize(new Dimension(60, 55));
-        button.setBackground(new Color(80, 80, 80));
-        button.setForeground(Color.WHITE);
-        button.setFont(new Font("Segoe UI", Font.PLAIN, 18));
-        button.setBorder(BorderFactory.createLineBorder(Color.GRAY));
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
     }
 
     private void resetPassword() {
@@ -183,7 +151,6 @@ public class ResetPasswordForm extends JFrame {
         String email = emailField.getText().trim();
         String newPassword = new String(newPasswordField.getPassword()).trim();
 
-        // Validasi input
         if (username.isEmpty() || email.isEmpty() || newPassword.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Semua field harus diisi!", "Peringatan", JOptionPane.WARNING_MESSAGE);
             return;
@@ -201,30 +168,38 @@ public class ResetPasswordForm extends JFrame {
             return;
         }
 
-        // Interaksi database
         try (Connection conn = DatabaseUtil.getConnection()) {
-            String checkSql = "SELECT * FROM admin WHERE username=? AND email=?";
-            PreparedStatement checkStmt = conn.prepareStatement(checkSql);
-            checkStmt.setString(1, username);
-            checkStmt.setString(2, email);
-            ResultSet rs = checkStmt.executeQuery();
+            PreparedStatement usernameStmt = conn.prepareStatement("SELECT * FROM admin WHERE username = ?");
+            usernameStmt.setString(1, username);
+            ResultSet usernameRs = usernameStmt.executeQuery();
 
-            if (rs.next()) {
-                String updateSql = "UPDATE admin SET password=? WHERE username=? AND email=?";
-                PreparedStatement updateStmt = conn.prepareStatement(updateSql);
-                updateStmt.setString(1, newPassword);
-                updateStmt.setString(2, username);
-                updateStmt.setString(3, email);
-                updateStmt.executeUpdate();
-
-                JOptionPane.showMessageDialog(this, "Password berhasil direset!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
-                dispose();
-            } else {
-                JOptionPane.showMessageDialog(this, "Username atau email tidak ditemukan!", "Gagal", JOptionPane.ERROR_MESSAGE);
+            if (!usernameRs.next()) {
+                JOptionPane.showMessageDialog(this, "Username tidak ditemukan!", "Gagal", JOptionPane.ERROR_MESSAGE);
+                return;
             }
+
+            PreparedStatement emailStmt = conn.prepareStatement("SELECT * FROM admin WHERE username = ? AND email = ?");
+            emailStmt.setString(1, username);
+            emailStmt.setString(2, email);
+            ResultSet emailRs = emailStmt.executeQuery();
+
+            if (!emailRs.next()) {
+                JOptionPane.showMessageDialog(this, "Email tidak cocok dengan username tersebut!", "Gagal", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            PreparedStatement updateStmt = conn.prepareStatement("UPDATE admin SET password = ? WHERE username = ? AND email = ?");
+            updateStmt.setString(1, newPassword); // bisa diganti md5(newPassword)
+            updateStmt.setString(2, username);
+            updateStmt.setString(3, email);
+            updateStmt.executeUpdate();
+
+            JOptionPane.showMessageDialog(this, "Password berhasil direset!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
+            dispose();
+
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Terjadi kesalahan saat reset.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Terjadi kesalahan saat reset password.", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -247,6 +222,21 @@ public class ResetPasswordForm extends JFrame {
         ));
     }
 
+    private void styleLabel(JLabel label) {
+        label.setForeground(Color.WHITE);
+        label.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 18));
+    }
+
+    private void styleToggleButton(JButton button) {
+        button.setFocusable(false);
+        button.setPreferredSize(new Dimension(60, 55));
+        button.setBackground(new Color(80, 80, 80));
+        button.setForeground(Color.WHITE);
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        button.setBorder(BorderFactory.createLineBorder(Color.GRAY));
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+    }
+
     private void styleButton(JButton button, Color bg) {
         button.setAlignmentX(Component.CENTER_ALIGNMENT);
         button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
@@ -254,8 +244,6 @@ public class ResetPasswordForm extends JFrame {
         button.setForeground(Color.WHITE);
         button.setFont(new Font("Segoe UI", Font.BOLD, 18));
         button.setFocusPainted(false);
-
-        // Hover effect
         button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
                 button.setBackground(bg.darker());
@@ -266,7 +254,6 @@ public class ResetPasswordForm extends JFrame {
         });
     }
 
-    // Background Panel with image
     static class BackgroundPanel extends JPanel {
         private Image backgroundImage;
 
@@ -294,3 +281,4 @@ public class ResetPasswordForm extends JFrame {
         });
     }
 }
+

@@ -1,0 +1,14 @@
+Kode,Nama Makanan,Harga (Rp),Stok
+M001,Chicken Paha Bawah,8000,10
+M002,Chicken Sayap,8000,10
+M003,Chicken Paha Atas,10000,10
+M004,Chicken Dada,10000,10
+M005,Ayam Geprek Paha Bawah,10000,10
+M006,Ayam Geprek Sayap,10000,10
+M007,Ayam Geprek Paha Atas,12000,10
+M008,Ayam Geprek Dada,12000,10
+M009,Chicken Sayap + Nasi,12000,10
+M010,Chicken Dada + Nasi,14000,10
+M011,Geprek Sayap + Nasi,14000,10
+M012,Geprek Dada + Nasi,16000,10
+M013,Naget Ayam,7000,10

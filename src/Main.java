@@ -4,6 +4,8 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 
 import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -14,7 +16,6 @@ import java.awt.print.Paper;
 import java.awt.print.Printable;
 import java.awt.print.PrinterJob;
 import java.io.*;
-
 
 
 public class Main extends JFrame {
@@ -41,9 +42,13 @@ public class Main extends JFrame {
     private JComboBox<String> comboMinuman;
     private JTextField textJumlahMakanan, textJumlahMinuman, textDiskon, textTunai;
     private JButton btnCetakStruk, btnDataMenu, btnLogout;
+    private JLabel labelHargaMakanan, labelTotalMakanan;
+    private JLabel labelHargaMinuman, labelTotalMinuman;
+    private JLabel labelTotalSemua;
 
     private final String FILE_STOK_MAKANAN = "stok_makanan.txt";
     private final String FILE_STOK_MINUMAN = "stok_minuman.txt";
+
 
     public Main() {
         super("Aplikasi Kasir");
@@ -53,7 +58,9 @@ public class Main extends JFrame {
 
         bacaStokDariFile();
 
-        setLayout(new GridBagLayout());
+        BackgroundPanel panel = new BackgroundPanel("/images/logo1.jpg");
+        setContentPane(panel);
+
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(8, 10, 8, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -68,69 +75,93 @@ public class Main extends JFrame {
         btnCetakStruk = new JButton("Cetak Struk");
         btnDataMenu = new JButton("Lihat Data Menu");
         btnLogout = new JButton("Logout");
+        labelHargaMakanan = new JLabel("Harga: Rp0");
+        labelTotalMakanan = new JLabel("Total: Rp0");
+        labelHargaMinuman = new JLabel("Harga: Rp0");
+        labelTotalMinuman = new JLabel("Total: Rp0");
+        labelTotalSemua = new JLabel("Total Semua: Rp0");
 
         gbc.gridx = 0;
         gbc.gridy = 0;
-        gbc.weightx = 0.3;
         add(new JLabel("Pilih Makanan:"), gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.7;
         add(comboMakanan, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 1;
-        gbc.weightx = 0.3;
         add(new JLabel("Jumlah Makanan:"), gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.7;
         add(textJumlahMakanan, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 2;
-        gbc.weightx = 0.3;
-        add(new JLabel("Pilih Minuman:"), gbc);
+        add(labelHargaMakanan, gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.7;
-        add(comboMinuman, gbc);
+        add(labelTotalMakanan, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 3;
-        gbc.weightx = 0.3;
-        add(new JLabel("Jumlah Minuman:"), gbc);
+        add(new JLabel("Pilih Minuman:"), gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.7;
-        add(textJumlahMinuman, gbc);
+        add(comboMinuman, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 4;
-        gbc.weightx = 0.3;
-        add(new JLabel("Diskon (%):"), gbc);
+        add(new JLabel("Jumlah Minuman:"), gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.7;
-        add(textDiskon, gbc);
+        add(textJumlahMinuman, gbc);
 
         gbc.gridx = 0;
         gbc.gridy = 5;
-        gbc.weightx = 0.3;
+        add(labelHargaMinuman, gbc);
+
+        gbc.gridx = 1;
+        add(labelTotalMinuman, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        add(new JLabel("Diskon (%):"), gbc);
+
+        gbc.gridx = 1;
+        add(textDiskon, gbc);
+        gbc.gridx = 0;
+        gbc.gridy = 9;
+        add(new JLabel("Total Semua:"), gbc);
+
+        gbc.gridx = 1;
+        add(labelTotalSemua, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy = 7;
         add(new JLabel("Tunai:"), gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.7;
         add(textTunai, gbc);
+        gbc.gridx = 0;
+        gbc.gridy = 9;
+        add(new JLabel("Total Semua:"), gbc);
 
-        gbc.gridy = 6;
-        gbc.weightx = 0.33;
+        gbc.gridx = 1;
+        add(labelTotalSemua, gbc);
+
+        comboMakanan.addActionListener(e -> updateHarga());
+        comboMinuman.addActionListener(e -> updateHarga());
+
 
         gbc.gridx = 0;
+        gbc.gridy = 8;
         add(btnCetakStruk, gbc);
 
         gbc.gridx = 1;
         add(btnDataMenu, gbc);
+        textJumlahMakanan.getDocument().addDocumentListener(new SimpleDocumentListener(() -> updateHarga()));
+        textJumlahMinuman.getDocument().addDocumentListener(new SimpleDocumentListener(() -> updateHarga()));
+        textDiskon.getDocument().addDocumentListener(new SimpleDocumentListener(() -> updateHarga()));
 
         gbc.gridx = 2;
         add(btnLogout, gbc);
@@ -159,6 +190,40 @@ public class Main extends JFrame {
 
         setVisible(true);
     }
+
+    private void updateHarga() {
+        try {
+            int indexMakanan = comboMakanan.getSelectedIndex();
+            int indexMinuman = comboMinuman.getSelectedIndex();
+
+            int jumlahMakanan = Integer.parseInt(textJumlahMakanan.getText().trim());
+            int jumlahMinuman = Integer.parseInt(textJumlahMinuman.getText().trim());
+            double diskon = Double.parseDouble(textDiskon.getText().trim());
+
+            double hargaMkn = hargaMakanan[indexMakanan];
+            double hargaMinum = hargaMinuman[indexMinuman];
+
+            double totalMkn = hargaMkn * jumlahMakanan;
+            double totalMinum = hargaMinum * jumlahMinuman;
+            double total = totalMkn + totalMinum;
+            double totalSetelahDiskon = total - (total * (diskon / 100.0));
+
+            labelHargaMakanan.setText("Harga: Rp" + String.format("%,.0f", hargaMkn));
+            labelTotalMakanan.setText("Total: Rp" + String.format("%,.0f", totalMkn));
+
+            labelHargaMinuman.setText("Harga: Rp" + String.format("%,.0f", hargaMinum));
+            labelTotalMinuman.setText("Total: Rp" + String.format("%,.0f", totalMinum));
+
+            labelTotalSemua.setText("Total Semua: Rp" + String.format("%,.0f", totalSetelahDiskon));
+
+        } catch (NumberFormatException e) {
+            labelTotalMakanan.setText("Total: Rp0");
+            labelTotalMinuman.setText("Total: Rp0");
+            labelTotalSemua.setText("Total Semua: Rp0");
+        }
+    }
+
+
 
     private void cetakStruk() {
         try {
@@ -216,6 +281,8 @@ public class Main extends JFrame {
             // Update stok
             stokMakanan[indexMakanan] -= jumlahMakanan;
             stokMinuman[indexMinuman] -= jumlahMinuman;
+            // Simpan stok langsung setelah transaksi
+            simpanStokKeFile();
 
 // Periksa apakah stok tersisa ≤ 3
             StringBuilder stokWarning = new StringBuilder();
@@ -318,7 +385,23 @@ public class Main extends JFrame {
                 kodeMakanan, makanan, hargaMakanan, stokMakanan,
                 kodeMinuman, minuman, hargaMinuman, stokMinuman);
         formDataMenu.setVisible(true);
+
+        // Ambil data terbaru setelah form ditutup
+        kodeMakanan = formDataMenu.getKodeMakanan();
+        makanan = formDataMenu.getMakanan();
+        hargaMakanan = formDataMenu.getHargaMakanan();
+        stokMakanan = formDataMenu.getStokMakanan();
+
+        kodeMinuman = formDataMenu.getKodeMinuman();
+        minuman = formDataMenu.getMinuman();
+        hargaMinuman = formDataMenu.getHargaMinuman();
+        stokMinuman = formDataMenu.getStokMinuman();
+
+        // Refresh combo box supaya menampilkan data terbaru
+        comboMakanan.setModel(new DefaultComboBoxModel<>(makanan));
+        comboMinuman.setModel(new DefaultComboBoxModel<>(minuman));
     }
+
 
     private void simpanStokKeFile() {
         try {
@@ -402,12 +485,44 @@ public class Main extends JFrame {
         }
     }
 
+    class BackgroundPanel extends JPanel {
+        private Image backgroundImage;
+
+        public BackgroundPanel(String path) {
+            try {
+                backgroundImage = new ImageIcon(getClass().getResource(path)).getImage();
+            } catch (Exception e) {
+                System.out.println("Gagal memuat gambar: " + path);
+            }
+            setLayout(new GridBagLayout()); // agar tetap bisa pakai GridBagLayout
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (backgroundImage != null) {
+                g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+            }
+        }
+    }
 
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(Main::new);
     }
 }
+
+// Untuk deteksi perubahan teks
+class SimpleDocumentListener implements DocumentListener {
+    private final Runnable onChange;
+    public SimpleDocumentListener(Runnable onChange) {
+        this.onChange = onChange;
+    }
+    @Override public void insertUpdate(DocumentEvent e) { onChange.run(); }
+    @Override public void removeUpdate(DocumentEvent e) { onChange.run(); }
+    @Override public void changedUpdate(DocumentEvent e) { onChange.run(); }
+}
+
 
 
 
